@@ -3,7 +3,7 @@
 # madal
 
 [![Release](https://img.shields.io/github/v/release/pa/madal-releases?style=flat-square&logo=github)](https://github.com/pa/madal-releases/releases)
-[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square)](LICENSE)
+[![License: free to use](https://img.shields.io/badge/license-free%20to%20use-blue?style=flat-square)](LICENSE)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-blue?style=flat-square)](https://github.com/pa/madal-releases/releases)
 [![End-to-end encrypted](https://img.shields.io/badge/end--to--end-encrypted-e8411b?style=flat-square)](docs/DESIGN.md)
 [![Stars](https://img.shields.io/github/stars/pa/madal-releases?style=flat-square)](https://github.com/pa/madal-releases/stargazers)
@@ -179,6 +179,6 @@ Report security issues privately instead: see [SECURITY.md](SECURITY.md).
 
 <div align="center">
 
-[Apache-2.0](LICENSE)
+Free to use. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES).
 
 </div>
