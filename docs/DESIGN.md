@@ -99,6 +99,12 @@ blocking that would break the main use case. The sandbox already denies cookies,
 top-level navigation and access to the parent. `form-action 'none'` stops credential-phishing
 forms.
 
+The landing page is the one app page that relaxes the shell's CSP. Its demo runs live with
+`@remotion/player`, which injects a style tag and plays `data:` media to start, so `/` adds
+`style-src 'unsafe-inline'` and `media-src 'self' data:`. It holds no keys except Try it's
+throwaway one. The viewer and the keys page keep the strict policy. The player is built from
+`demo/video` (`npm run player`) into `web/app/media/player.js`.
+
 Public artifacts skip the decrypt step. `/p/<id>` on the app origin is a shell with OG tags,
 and its iframe points at `<content>/p/<id>/raw`, which serves the HTML directly under the same
 CSP plus a `sandbox allow-scripts allow-popups` CSP directive.

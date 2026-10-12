@@ -13,9 +13,12 @@
 Madal turns the HTML and Markdown your coding agent writes into a link.<br>
 It's encrypted on your machine, and the key never reaches our server.
 
-[Install](#install) · [Quick start](#quick-start) · [Sharing](#sharing-with-people-and-teams) · [How it works](#how-the-encryption-works) · [Security](SECURITY.md) · [Report a problem](#report-a-problem)
+[Watch the demo](https://app-o3jolfte-madal-vibe-app-de.web.app/#demo) · [Install](#install) · [Quick start](#quick-start) · [Sharing](#sharing-with-people-and-teams) · [How it works](#how-the-encryption-works) · [Security](SECURITY.md) · [Report a problem](#report-a-problem)
 
 </div>
+
+A 90-second demo plays live on [the home page](https://app-o3jolfte-madal-vibe-app-de.web.app/#demo), where you can open the
+dashboard it publishes. The same cut is in [docs/madal-demo.mp4](docs/madal-demo.mp4).
 
 ---
 
