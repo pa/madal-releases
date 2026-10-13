@@ -13,11 +13,11 @@
 Madal turns the HTML and Markdown your coding agent writes into a link.<br>
 It's encrypted on your machine, and the key never reaches our server.
 
-[Watch the demo](https://app-o3jolfte-madal-vibe-app-de.web.app/#demo) · [Install](#install) · [Quick start](#quick-start) · [Sharing](#sharing-with-people-and-teams) · [How it works](#how-the-encryption-works) · [Security](SECURITY.md) · [Report a problem](#report-a-problem)
+[Watch the demo](https://madal.facets.cloud/#demo) · [Install](#install) · [Quick start](#quick-start) · [Sharing](#sharing-with-people-and-teams) · [How it works](#how-the-encryption-works) · [Security](SECURITY.md) · [Report a problem](#report-a-problem)
 
 </div>
 
-A 90-second demo plays live on [the home page](https://app-o3jolfte-madal-vibe-app-de.web.app/#demo), where you can open the
+A 90-second demo plays live on [the home page](https://madal.facets.cloud/#demo), where you can open the
 dashboard it publishes. The same cut is in [docs/madal-demo.mp4](docs/madal-demo.mp4).
 
 ---
@@ -29,7 +29,7 @@ dashboard it publishes. The same cut is in [docs/madal-demo.mp4](docs/madal-demo
 </div>
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pa/madal-releases/main/install.sh | bash
+curl -fsSL https://madal.facets.cloud/install.sh | sh
 ```
 
 The script downloads the release for your OS and CPU, checks its SHA-256 against the release's
@@ -69,7 +69,7 @@ madal publish report.html --link  # a link anyone can open; the key is the part 
 `madal login` opens your browser. You sign in with Google, GitHub or an email link. The first time, you
 choose a master password: it encrypts your sharing keys, and you type it once on each new browser
 or machine. Nobody can reset it. Login also installs a `SKILL.md` into the agents on your machine,
-so Claude Code, Codex, Cursor, Gemini CLI or Goose can publish for you.
+so Claude Code, Codex, Cursor or Antigravity can publish for you.
 
 Signed in, what you publish is private to you, like a new document: the link carries no key and
 opens wherever you're signed in. Add `--link` to make a link anyone can open, or `--to` to share

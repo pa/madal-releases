@@ -103,7 +103,13 @@ The landing page is the one app page that relaxes the shell's CSP. Its demo runs
 `@remotion/player`, which injects a style tag and plays `data:` media to start, so `/` adds
 `style-src 'unsafe-inline'` and `media-src 'self' data:`. It holds no keys except Try it's
 throwaway one. The viewer and the keys page keep the strict policy. The player is built from
-`demo/video` (`npm run player`) into `web/app/media/player.js`.
+`demo/video` (`npm run player`) into `web/app/media/player.js`. It runs with the app origin's
+privileges, so its dependencies are pinned to exact versions with a lockfile and the built file is
+committed: it changes only when someone rebuilds it on purpose.
+
+Both clients decrypt with the artifact id and version they asked for, and refuse an answer that
+names a different one, since the AAD binds both and a server could otherwise pass one version off
+as another.
 
 Public artifacts skip the decrypt step. `/p/<id>` on the app origin is a shell with OG tags,
 and its iframe points at `<content>/p/<id>/raw`, which serves the HTML directly under the same
@@ -133,6 +139,12 @@ CSP plus a `sandbox allow-scripts allow-popups` CSP directive.
   verifier.
 - **API tokens** are `mdl_` + 32 random bytes, base64url. The server stores SHA-256 hashes only.
   The CLI keeps the token in the OS keychain (`go-keyring`).
+- **Tokens expire when idle.** A browser session lasts 30 days and a CLI token 90, each renewed
+  once it's past half its life and still in use. Tokens issued before expiry existed count from
+  their creation. `POST /api/me/signout` (and `/api/web/logout` for the browser) deletes the token
+  on the server; `{"everywhere": true}` deletes every token on the account. `madal logout` calls it
+  before clearing the keychain, and `madal logout --everywhere` ends every session. A browser
+  sign-out must carry our own `Origin`, so another site can't sign people out.
 - **Anonymous publish** returns an edit token, hashed the same way, so the publisher can update or
   delete without an account.
 
@@ -142,7 +154,7 @@ Firestore through its MongoDB API. Blobs go to GCS.
 
 ```
 users      {_id: uid, email, created_at}
-tokens     {_id: sha256(token), uid, created_at, last_used_at, label}
+tokens     {_id: sha256(token), uid, created_at, expires_at, label}
 cli_codes  {_id: sha256(code), uid, challenge, expires_at}
 artifacts  {_id, owner_uid | null, edit_token_hash | null, tier, latest,
             password: {salt, iterations} | null, title (public only),
@@ -165,7 +177,16 @@ id alone reveals nothing for the link tier anyway.
 - Size caps: 1 MiB per version anonymous, 5 MiB signed in. An artifact keeps its newest 5
   versions (see Older versions), so one artifact holds at most 25 MiB.
 - Rate limits in fixed windows stored in `limits`: 10 publishes an hour per IP anonymous,
-  60 an hour per account. The client IP comes from `X-Forwarded-For` as set by Firebase Hosting.
+  60 an hour per account; per account an hour, 20 new teams, 200 team member changes and 600
+  shares. The client IP comes from `X-Forwarded-For` as set by Firebase Hosting; an IPv6 address
+  counts by its /64. Anonymous limits fail closed when the counter store is down; account limits
+  fail open, so an outage doesn't stop people who are signed in. The stored IP hashes are keyed
+  with `IP_SALT`, which the app server requires on real storage.
+- Caps: 100 teams per account, 500 members per team, 500 shares per artifact. Team names have no
+  control or invisible formatting characters, and the CLI also escapes them when it prints. Vault
+  password iterations are between 600k and 10M.
+- An anonymous artifact expires at most 7 days after it was created, however its limits change.
+  Public pages take no open limit, since they are served without counting opens.
 - A report button in the viewer chrome. For link-tier artifacts the reporter can tick a box to
   include the key, which is the only way the operator can ever read reported content.
 - Expiry is enforced on read. Expired artifacts return 410 and get deleted lazily.
@@ -252,6 +273,10 @@ artifact or another recipient.
 - **Removing a member rotates the team key.** The remover's device makes a new team key, wraps it to
   the remaining members, and re-wraps every team grant from the old key to the new one, then
   deletes the old grants. The removed member keeps what they already opened and nothing new.
+- **A rotation only wraps to members this device has seen.** The member list comes from the server,
+  so a member this device has no key on record for (say, one another admin added) stops the
+  rotation with their fingerprints, and it goes ahead with `--accept-new-key` after the user checks
+  them. Otherwise a server could list a member of its own and receive the new team key.
 - One concept, "team". No nesting, no workspaces in v0.
 
 ### Trusting public keys
@@ -296,8 +321,9 @@ account owns (blobs, versions, grants), deletes its received grants, invites by 
 memberships, sharing keys, every token (CLI and browser sessions alike), the user record and the
 sign-in record. A team it leaves is deleted if empty; otherwise its longest-standing member becomes
 admin if none is left. The server can't rotate team keys, so a team whose key was signed by the
-departed admin is re-signed by the next admin's device the first time it uses the team: a new team
-key under that admin, for the same members, with every team grant re-wrapped to it.
+departed admin needs re-signing by the next admin: a new team key under that admin, for the same
+members, with every team grant re-wrapped to it. The admin's device asks first (the command stops
+and says so, and `--accept-new-key` goes ahead), since the server could fake a departed signer.
 
 ### Resetting keys
 

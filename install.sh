@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install madal from the latest GitHub release.
 #
-#   curl -fsSL https://raw.githubusercontent.com/pa/madal-releases/main/install.sh | sh
+#   curl -fsSL https://madal.facets.cloud/install.sh | sh
 #
 # It downloads the archive for this OS and CPU, checks its SHA-256 against the
 # release's checksums.txt, and installs the binary into $MADAL_INSTALL_DIR
