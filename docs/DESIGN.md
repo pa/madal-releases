@@ -99,13 +99,12 @@ blocking that would break the main use case. The sandbox already denies cookies,
 top-level navigation and access to the parent. `form-action 'none'` stops credential-phishing
 forms.
 
-The landing page is the one app page that relaxes the shell's CSP. Its demo runs live with
-`@remotion/player`, which injects a style tag and plays `data:` media to start, so `/` adds
-`style-src 'unsafe-inline'` and `media-src 'self' data:`. It holds no keys except Try it's
-throwaway one. The viewer and the keys page keep the strict policy. The player is built from
-`demo/video` (`npm run player`) into `web/app/media/player.js`. It runs with the app origin's
-privileges, so its dependencies are pinned to exact versions with a lockfile and the built file is
-committed: it changes only when someone rebuilds it on purpose.
+The landing page's demo is one HTML file with its scripts inline (`web/app/media/demo/`, served
+at `/demo/`). It never runs with the app origin's privileges: its response carries
+`Content-Security-Policy: sandbox allow-scripts`, and the landing page frames it with
+`sandbox="allow-scripts"`, so it gets an opaque origin with no access to the app's cookies,
+storage or keys, even when opened directly. It loads nothing but its own audio. The landing page
+itself keeps the shell's policy, plus `frame-src 'self'` for that frame.
 
 Both clients decrypt with the artifact id and version they asked for, and refuse an answer that
 names a different one, since the AAD binds both and a server could otherwise pass one version off
