@@ -67,8 +67,9 @@ madal publish report.html --link  # a link anyone can open; the key is the part 
 ```
 
 `madal login` opens your browser. You sign in with Google, GitHub or an email link. The first time, you
-choose a master password: it encrypts your sharing keys, and you type it once on each new browser
-or machine. Nobody can reset it. Login also installs a `SKILL.md` into the agents on your machine,
+choose a master password, and madal makes a Secret Key and shows it in an **Emergency Kit** to save.
+Together they encrypt your sharing keys. After that each browser and machine remembers the Secret
+Key, so you only type your master password. Nobody can recover either one. Login also installs a `SKILL.md` into the agents on your machine,
 so Claude Code, Codex, Cursor or Antigravity can publish for you.
 
 Signed in, what you publish is private to you, like a new document: the link carries no key and
@@ -122,10 +123,13 @@ key. If their key ever changes, madal stops and tells you the new fingerprint.
 published, what you shared and what was shared with you, your teams or your place in them, your
 keys, every sign-in and the account itself. You confirm by typing your email.
 
-Forgot your master password? **Reset your keys** on the keys page, or run
-`madal keys init --replace`. You get new keys under a new password. What others shared with you
-under the old keys can't be opened again; your own pages are re-locked to the new keys by the
-machine that published them (straight away from the CLI, or at its next `madal login`).
+Lost your master password or Secret Key? Nothing encrypted can be opened without both, by you or by
+madal, so **Start from scratch** on the keys page deletes your account and everything in it. Then you
+sign in again with the same email and start fresh.
+
+On a new or reset machine, `madal login` and your master password (plus the Secret Key from your
+Emergency Kit, once) bring everything back: `madal list` shows your links and titles again.
+`madal logout` keeps only what the server can't rebuild; `madal logout --forget` removes everything.
 
 ---
 
@@ -141,7 +145,7 @@ machine that published them (straight away from the CLI, or at its next `madal l
 | **Links** | The key rides after the `#`, which browsers never send to a server. An optional password is mixed in with PBKDF2-SHA256 and HKDF |
 | **People** | The key is wrapped to each person's P-256 public key (ECDH, HKDF, AES-GCM) and stored as a grant the server can't open. Remove someone and the next update uses a new key, so the old one opens nothing published after that |
 | **Teams** | The key is wrapped to a team key. Every change to the team key is signed by an admin and chained to the one before, and it's rotated when someone leaves |
-| **Your keys** | Kept in a vault encrypted on your device with your master password (PBKDF2-SHA256, 600,000 iterations) before it's stored on the server |
+| **Your keys** | Kept in a vault encrypted on your device with your master password (PBKDF2-SHA256, 600,000 iterations) and a 128-bit Secret Key that never leaves your devices, before it's stored on the server. A copy of the server's data can't be opened by guessing your password |
 | **Viewing** | Artifacts render in a sandboxed frame on a separate domain, away from your session and keys |
 
 Exact formats are in [docs/DESIGN.md](docs/DESIGN.md).

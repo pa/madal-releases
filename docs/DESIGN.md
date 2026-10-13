@@ -74,13 +74,30 @@ Artifact HTML is untrusted code, often agent-written, sometimes hostile. It must
 origin that holds sign-in state or API tokens.
 
 ```
-app origin      <app-site>.web.app       -> cloudrun "api"      (MODE=app)
-content origin  <content-site>.web.app   -> cloudrun "content"  (MODE=content)
+app origin      madal.facets.cloud           -> cloudrun "app"      (MODE=app)
+content origin  madal-content.facets.cloud   -> cloudrun "content"  (MODE=content)
 ```
 
-`web.app` is on the Public Suffix List (checked 2026-10-11), so the two sites are separate
-registrable domains. Cookies cannot be shared between them. Safe Browsing can flag one without
-the other.
+Both run on Firebase Hosting. The original `*.web.app` addresses still answer, with a 301 to the
+same path on the new host (OLD_HOSTS); browsers keep the `#key` across the redirect.
+
+The two origins share the registrable domain `facets.cloud`, so the browser treats them as the
+same site. That is still safe for artifacts:
+
+- Every content-origin response carries `Content-Security-Policy: sandbox allow-scripts
+  allow-popups`, so artifact code runs in an opaque origin. Its requests are cross-site and never
+  carry the session cookie, it can't read or set cookies, and CORS keeps it from reading API
+  responses.
+- The session cookie is host-only (no `Domain`), `Secure`, `HttpOnly` and `SameSite=Strict`, so it
+  is only ever sent to `madal.facets.cloud`.
+
+What the shared parent domain does add: any other `facets.cloud` subdomain could set a
+`Domain=facets.cloud` cookie named `__session`, which madal would receive. Whoever controlled
+such a subdomain could sign a visitor into the attacker's own madal account (login CSRF). The
+usual fix, a `__Host-` cookie name, isn't available, because Firebase Hosting forwards only a
+cookie named `__session` to Cloud Run. The risk rests on facets.cloud's other subdomains staying
+trustworthy. Safe Browsing can also flag `facets.cloud` as a whole if an abusive artifact is
+reported, which is why abuse reports matter.
 
 Viewing a link-tier artifact:
 
@@ -213,21 +230,33 @@ Madal runs. Public keys are stored on the server in the clear.
 ### The vault
 
 The private halves of `E` and `S` live on the server inside a **vault**: PKCS#8 bytes sealed with
-AES-256-GCM under a random 32-byte vault key `VK`. `VK` is wrapped with a key derived from the
-**master password**:
+AES-256-GCM under a random 32-byte vault key `VK`. `VK` is wrapped with a key derived from two
+secrets, as in 1Password's two-secret key derivation: the **master password** and a **Secret
+Key**, 16 random bytes made on the user's device when the vault is created and never sent to
+the server:
 
 ```
-password unlock  W = PBKDF2-SHA256(master password, salt16, 600000 iterations, 32 bytes)
+secret unlock    W = PBKDF2-SHA256(master password, salt16, 600000 iterations, 32 bytes)
+                     XOR HKDF-SHA256(Secret Key, salt = uid, info = "madal/v1/vault/secret-key", 32 bytes)
 wrap             "MDW1" || nonce12 || AES-256-GCM(W, nonce, VK, aad = "madal/v1/vault/" + uid)
+Secret Key text  "M1-" + base32(16 bytes), grouped 6-5-5-5-5
 ```
 
 - Signing in (Google, GitHub or an email link) and unlocking are separate. Sign-in proves who you are to the
-  server; only the master password opens the vault. Each browser remembers the unlocked keys
-  until "Lock on this browser", so the password is typed once per browser or machine.
-- The master password must be at least 12 characters. The server can only check it by stealing
-  the vault and guessing offline, which the 600,000 PBKDF2 iterations make slow.
-- Forgetting the master password loses the data shared with that account. Nobody can reset it,
-  Madal included. The product says so when the vault is created.
+  server; only the master password and the Secret Key together open the vault.
+- A stolen copy of the server's data can't be opened by guessing the master password: each guess
+  would also need the Secret Key's 128 random bits. The master password must still be at least 12
+  characters, and 600,000 PBKDF2 iterations slow any guess.
+- Each browser keeps the Secret Key (IndexedDB) after the first unlock, and `madal login` hands it
+  to the CLI's keychain with the private keys, so it's typed once per device, from the **Emergency
+  Kit** the vault page shows at setup (print it, or save it in a password manager). Signing out
+  keeps it, as 1Password does; `madal logout --forget` removes it.
+- Vaults from before Secret Keys have a `password` wrap (`W` from the password alone). The browser
+  replaces it with a `secret` wrap at their next unlock: the same `VK` and account keys, so no grant
+  changes, and the Emergency Kit is shown then. The server accepts exactly one of the two.
+- Losing the master password or the Secret Key loses everything encrypted for that account.
+  Nobody can recover either, Madal included. "Start from scratch" deletes the account and
+  everything in it, as Bitwarden does, and the user signs up again.
 - The vault format allows more wraps of `VK` (the server accepts a `passkey` kind). Unlocking
   with a passkey, via the WebAuthn PRF extension, is planned and not offered yet.
 - The CLI gets the private keys during `madal login`: it puts a throwaway ECDH public key in the
@@ -324,12 +353,23 @@ departed admin needs re-signing by the next admin: a new team key under that adm
 members, with every team grant re-wrapped to it. The admin's device asks first (the command stops
 and says so, and `--accept-new-key` goes ahead), since the server could fake a departed signer.
 
-### Resetting keys
+### Recovery on another machine
 
-A reset (`madal keys init --replace`, or the keys page) replaces the account's keys and vault. Grants
-wrapped to the old key can't be opened. The publishing machine re-wraps the owner's grant on every
-artifact it has a key for: straight away when the reset runs there, or at its next `madal login`,
-which notices the keys it's handed differ from the ones it held.
+Every artifact an account publishes while it has sharing keys gets an **owner grant** (its key,
+wrapped to the owner like any reader) and, from v0.1.15, an **encrypted title**: the title
+padded to 64, 128 or 256 bytes (`0x80` then zeros), sealed `"MDT1" || nonce12 ||
+AES-256-GCM(K, nonce, padded, aad = "madal/v1/title/" + id)` with the artifact's newest key. The
+server can read neither. On a machine where the account is unlocked, `madal list` rebuilds the
+local record of every artifact it doesn't know (title and full `#key` link) from these.
+
+Artifacts published before the account had keys on a machine have no owner grant. Every signed-in
+command backs a few of them up quietly (owner grant and title), and `madal logout` backs up the
+rest first. `--no-owner-copy` opts a link out: its key stays only in the link and on that machine.
+
+`madal logout` then drops what the server can rebuild (local records, the private keys) and keeps
+the Secret Key and anything that can't be rebuilt: records of artifacts published without an
+account, whose edit token only that machine holds, and `--no-owner-copy` links. `--forget` drops
+those too, after listing them, with the Secret Key and the fingerprints this machine has verified.
 
 ### Revoking
 
