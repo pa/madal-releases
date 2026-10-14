@@ -3,6 +3,9 @@
 Madal's whole claim is that the server can't read what you share. If you find a way around that,
 or any other security problem, please report it privately.
 
+How the encryption, sharing and sandbox work, and the limits of the design:
+[madal.facets.cloud/security](https://madal.facets.cloud/security).
+
 ## Reporting
 
 Use GitHub's private vulnerability reporting: the **Security** tab of this repository, then
@@ -16,7 +19,7 @@ Include what you found, how to reproduce it, and what an attacker gains. A proof
 - Ways for an artifact's own HTML to escape its sandbox, reach the viewer page, or read a key.
 - Bypassing sharing: opening an artifact that wasn't shared with you, keeping access after being
   removed from a team, or acting as another account.
-- Weaknesses in the formats described in [docs/DESIGN.md](docs/DESIGN.md).
+- Weaknesses in the formats described on the [security page](https://madal.facets.cloud/security).
 
 ## Known limits
 

@@ -5,7 +5,7 @@
 [![Release](https://img.shields.io/github/v/release/pa/madal-releases?style=flat-square&logo=github)](https://github.com/pa/madal-releases/releases)
 [![License: free to use](https://img.shields.io/badge/license-free%20to%20use-blue?style=flat-square)](LICENSE)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-blue?style=flat-square)](https://github.com/pa/madal-releases/releases)
-[![End-to-end encrypted](https://img.shields.io/badge/end--to--end-encrypted-e8411b?style=flat-square)](docs/DESIGN.md)
+[![End-to-end encrypted](https://img.shields.io/badge/end--to--end-encrypted-e8411b?style=flat-square)](https://madal.facets.cloud/security)
 [![Stars](https://img.shields.io/github/stars/pa/madal-releases?style=flat-square)](https://github.com/pa/madal-releases/stargazers)
 
 **Share what your AI makes. Even we can't read it.**
@@ -74,8 +74,8 @@ so Claude Code, Codex, Cursor or Antigravity can publish for you.
 
 Signed in, what you publish is private to you, like a new document: the link carries no key and
 opens wherever you're signed in. Add `--link` to make a link anyone can open, or `--to` to share
-with people by name. You can skip `madal login` for quick, anonymous links. They expire after 7
-days.
+with people by name. Publishing needs an account, so run `madal login` once before your first
+publish.
 
 ```bash
 madal publish notes.md                          # Markdown is rendered on your machine
@@ -148,7 +148,7 @@ Emergency Kit, once) bring everything back: `madal list` shows your links and ti
 | **Your keys** | Kept in a vault encrypted on your device with your master password (PBKDF2-SHA256, 600,000 iterations) and a 128-bit Secret Key that never leaves your devices, before it's stored on the server. A copy of the server's data can't be opened by guessing your password |
 | **Viewing** | Artifacts render in a sandboxed frame on a separate domain, away from your session and keys |
 
-Exact formats are in [docs/DESIGN.md](docs/DESIGN.md).
+Exact formats are on the [security page](https://madal.facets.cloud/security).
 
 ### What it can't protect against
 

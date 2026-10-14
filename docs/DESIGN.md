@@ -75,14 +75,18 @@ origin that holds sign-in state or API tokens.
 
 ```
 app origin      madal.facets.cloud           -> cloudrun "app"      (MODE=app)
-content origin  madal-content.facets.cloud   -> cloudrun "content"  (MODE=content)
+content origin  madal.facetsusercontent.cloud -> cloudrun "content" (MODE=content)
 ```
 
-Both run on Firebase Hosting. The original `*.web.app` addresses still answer, with a 301 to the
-same path on the new host (OLD_HOSTS); browsers keep the `#key` across the redirect.
+Both run on Firebase Hosting. Former addresses (the `*.web.app` names, and
+`madal-content.facets.cloud` for content) still answer, with a 301 to the same path on the current
+host (OLD_HOSTS); browsers keep the `#key` across the redirect.
 
-The two origins share the registrable domain `facets.cloud`, so the browser treats them as the
-same site. That is still safe for artifacts:
+User content lives on its own registrable domain, `facetsusercontent.cloud`, as Google's does on
+`googleusercontent.com`. Madal can't scan encrypted pages, so a phishing page published as a link
+is possible. If Safe Browsing flags the content host, the flag stays on that
+domain and doesn't reach `facets.cloud`. The two origins are also cross-site to the browser.
+Artifacts are isolated from the app as follows:
 
 - Every content-origin response carries `Content-Security-Policy: sandbox allow-scripts
   allow-popups allow-popups-to-escape-sandbox`, so artifact code runs in an opaque origin. Its
@@ -93,13 +97,12 @@ same site. That is still safe for artifacts:
 - The session cookie is host-only (no `Domain`), `Secure`, `HttpOnly` and `SameSite=Strict`, so it
   is only ever sent to `madal.facets.cloud`.
 
-What the shared parent domain does add: any other `facets.cloud` subdomain could set a
+The app itself still sits under `facets.cloud`, so any other `facets.cloud` subdomain could set a
 `Domain=facets.cloud` cookie named `__session`, which madal would receive. Whoever controlled
 such a subdomain could sign a visitor into the attacker's own madal account (login CSRF). The
 usual fix, a `__Host-` cookie name, isn't available, because Firebase Hosting forwards only a
 cookie named `__session` to Cloud Run. The risk rests on facets.cloud's other subdomains staying
-trustworthy. Safe Browsing can also flag `facets.cloud` as a whole if an abusive artifact is
-reported, which is why abuse reports matter.
+trustworthy; artifact code can no longer be one of them.
 
 Viewing a link-tier artifact:
 
@@ -163,7 +166,9 @@ CSP plus a `sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox` C
   on the server; `{"everywhere": true}` deletes every token on the account. `madal logout` calls it
   before clearing the keychain, and `madal logout --everywhere` ends every session. A browser
   sign-out must carry our own `Origin`, so another site can't sign people out.
-- **Anonymous publish** returns an edit token, hashed the same way, so the publisher can update or
+- **Publishing needs an account** with a verified email (from 14 October 2026), so every page
+  belongs to someone who can be held to it. Before that, an anonymous publish returned an edit
+  token, hashed the same way, so the publisher could update or
   delete without an account.
 
 ## Data model
@@ -190,8 +195,10 @@ id alone reveals nothing for the link tier anyway.
 
 ## Abuse controls (v0)
 
-- Anonymous artifacts expire after 7 days and are link tier only. An account makes them
-  permanent.
+- Publishing needs a signed-in account with a verified email; the server refuses anything else
+  with 401. Encrypted pages can't be scanned, so accountability is the main defence: an abusive
+  account can be banned and all its pages removed. Anonymous artifacts from before this expire
+  within 7 days of creation; they can be deleted with their edit token but take no new versions.
 - Size caps: 1 MiB per version anonymous, 5 MiB signed in. An artifact keeps its newest 5
   versions (see Older versions), so one artifact holds at most 25 MiB.
 - Rate limits in fixed windows stored in `limits`: 10 publishes an hour per IP anonymous,
