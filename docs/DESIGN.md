@@ -85,9 +85,11 @@ The two origins share the registrable domain `facets.cloud`, so the browser trea
 same site. That is still safe for artifacts:
 
 - Every content-origin response carries `Content-Security-Policy: sandbox allow-scripts
-  allow-popups`, so artifact code runs in an opaque origin. Its requests are cross-site and never
-  carry the session cookie, it can't read or set cookies, and CORS keeps it from reading API
-  responses.
+  allow-popups allow-popups-to-escape-sandbox`, so artifact code runs in an opaque origin. Its
+  requests are cross-site and never carry the session cookie, it can't read or set cookies, and
+  CORS keeps it from reading API responses. A link the artifact opens in a new tab loads as a
+  normal page, not inside the artifact's sandbox, so a site it links to works as it would from
+  any other page. That tab's opener is the opaque-origin frame, which can't reach the app.
 - The session cookie is host-only (no `Domain`), `Secure`, `HttpOnly` and `SameSite=Strict`, so it
   is only ever sent to `madal.facets.cloud`.
 
@@ -104,7 +106,7 @@ Viewing a link-tier artifact:
 1. The browser loads `/a/<id>` on the app origin, a static shell.
 2. The shell reads the key from `location.hash`, fetches the blob from `/api/a/<id>/blob`, asks
    for the password if the artifact has one, and decrypts.
-3. The shell creates `<iframe sandbox="allow-scripts allow-popups" src="<content>/frame">`.
+3. The shell creates `<iframe sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" src="<content>/frame">`.
    Without `allow-same-origin` the frame runs in an opaque origin.
 4. The frame page sends `ready`. The shell posts the plaintext HTML to it, and the frame swaps
    it in with `document.open()` / `document.write()`. The key never leaves the shell.
@@ -129,7 +131,7 @@ as another.
 
 Public artifacts skip the decrypt step. `/p/<id>` on the app origin is a shell with OG tags,
 and its iframe points at `<content>/p/<id>/raw`, which serves the HTML directly under the same
-CSP plus a `sandbox allow-scripts allow-popups` CSP directive.
+CSP plus a `sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox` CSP directive.
 
 ## Accounts and tokens
 
@@ -364,12 +366,12 @@ local record of every artifact it doesn't know (title and full `#key` link) from
 
 Artifacts published before the account had keys on a machine have no owner grant. Every signed-in
 command backs a few of them up quietly (owner grant and title), and `madal logout` backs up the
-rest first. `--no-owner-copy` opts a link out: its key stays only in the link and on that machine.
+rest first.
 
 `madal logout` then drops what the server can rebuild (local records, the private keys) and keeps
 the Secret Key and anything that can't be rebuilt: records of artifacts published without an
-account, whose edit token only that machine holds, and `--no-owner-copy` links. `--forget` drops
-those too, after listing them, with the Secret Key and the fingerprints this machine has verified.
+account, whose edit token only that machine holds. `--forget` drops those too, after listing
+them, with the Secret Key and the fingerprints this machine has verified.
 
 ### Revoking
 
